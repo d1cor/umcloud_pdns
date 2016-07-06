@@ -32,14 +32,19 @@ El **HAproxy** fue configurado para hacer balanceo mediante la dirección ip de 
 
 Tanto el powerdns con su backend-mysql, como el WUI poweradmin, acceden a la DB utilizando las mismas credenciales.
 
-El nombre de usuario de conexión y el nombre de la base de datos se especifican en el Makefile.
-La contraseña se genera automáticamente como valor random de 16 caracteres en el Makefile.
-Todoes estos datos, a la hora del deploy, se guardan en el consul en un folder de Key/value.
+El *nombre de usuario* de conexión y el *nombre de la base de datos* se especifican en el Makefile.
+La *contraseña* se genera automáticamente como valor random de 16 caracteres en el Makefile.
+
+Todos estos datos, a la hora del deploy, se guardan en el consul en un folder de *Key/value*.
 
 Los datos permanencen en el consul. Si se re-deployea algun equipo, lee los mismos datos para poder autenticarse.
 
 En el caso de eliminar los datos o el folder en el consul, al deployar nuevamente se generarán.
 
+## Autenticación a la interfaz web del PowerAdmin:
+- User: admin
+- Pass: (sin password)
+Esta info se puede cambiar desde la interfaz de configuración del poweradmin.
 
 ## Servicios DNS
 
@@ -48,6 +53,11 @@ Los nodos web-N levantados son, a su vez, servidores de DNS replicados que leen 
 Para poder consultar los nombres de una zona en estos servicios es requerido agregar al default secgroup el puerto udp53 a las instancias del usuario.
 
 Las consultas pueden realizarse desde los mismos nodos sin inconvenientes.
+
+## Datos pre-cargados
+El sistema ya tiene cargada la zona *"mizona.com"*, de modo que los nodos web-N ya podrán resolver la zona ni bien inicie el sistema:
+
+```dig @prod-d1cor-web-1.node.cloud.um.edu.ar mizona.com```
 
 ## Instalacion
 
@@ -58,5 +68,8 @@ git clone https://github.com/d1cor/umcloud_pdns
 cd umcloud_pdns/
 
 make deploy ENV=prod
+
+## TODO
+- Ver la forma de eliminar el "sleep 120" del fe.yaml:31 para que no haya problemas al restart del servicio haproxy.
 
 
