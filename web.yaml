@@ -1,0 +1,249 @@
+#cloud-config
+apt_proxy: http://172.16.16.1:8000/
+http_proxy: http://172.16.16.1:8000/
+apt_update: true
+
+_foo: &SSH_KEY "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC5eevkMmUlTxruhespUgHPGO3y3db7hLlq0IPu2WmTf+8YW9MM8/RddGvf2Pwshe7uIz1RhALBluuEXyZXM4ZL4ePiktxUFRKy9a/BnphR/RsAxKQ+HRAAwXheEJ6q3vmjlIMG5GOJhn+br6lMtr/ojDwHrfC1NrSFr/jZkRR5K218Yt33Y7AzZm+ahVkZUHIbpQs4XehBThnMl2enxfum00pGChQJIlDL2jM4ZLMGTvbXe3Zv+70osS0+UDpO8di2CLxi42sDoquNcCvd4KLpG5droqJwf4WRmhleLvkW0H5rP1diUbO5Btu3nJMZVlBZLCSLeI5QKsaN81YwHJsf jujumanage@um-cloud-maas"
+
+users:
+  - name: ubuntu
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - *SSH_KEY
+    ssh-import-id: [jjo, navarrow, "EDITAR_LP"]
+    lock_passwd: true
+
+#apt_update: true
+
+packages:
+  - git
+  - apache2
+  - php-mysql
+  - php-mcrypt
+  - libapache2-mod-php
+  - curl
+  - mlocate
+  - unzip
+  - pdns-server
+  - pdns-backend-mysql
+  - openssh-server
+
+
+_foo: &DEPLOY_SH |
+  #!/bin/bash
+  #Descargamos consul
+  cd /tmp
+  wget http://192.168.3.251/consul/0.6.4/consul_0.6.4_linux_amd64.zip
+  unzip *.zip
+  cp consul /usr/local/sbin
+  #creamos users dirs para consul
+  useradd -d /var/consul -m consul
+  mkdir -p /etc/consul.d
+  # Mostramos resultado
+  my_ip=$(ip r get 1 | sed -nr 's/.*src (\S+).*/\1/p')
+  echo "*** INFO: READY, browse:"
+  echo "    http://${my_ip?}/php-mysql"
+  echo "*** INFO: END $0 $*"
+  sleep 20
+  exit 0
+
+
+
+_foo: &DEPLOYPDNS_SH |
+  #!/bin/bash
+  
+  #leemos desde el consul los datos de conexion a la DB
+  dbuser=$(curl -s http://consul.cloud.um.edu.ar:8500/v1/kv/EDITAR_ENV-EDITAR_USUARIO/dbuser?raw)
+  dbpass=$(curl -s http://consul.cloud.um.edu.ar:8500/v1/kv/EDITAR_ENV-EDITAR_USUARIO/dbpass?raw)
+  dbname=$(curl -s http://consul.cloud.um.edu.ar:8500/v1/kv/EDITAR_ENV-EDITAR_USUARIO/dbname?raw)
+
+  # creamos el archivo de conf de DB para el pdns
+  rm /etc/powerdns/pdns.d/*
+  cat > /etc/powerdns/pdns.d/pdns.local.gmysql.conf <<EOF
+  launch=gmysql
+  gmysql-host=EDITAR_ENV-EDITAR_USUARIO-db.node.cloud.um.edu.ar
+  gmysql-user=$dbuser
+  gmysql-password=$dbpass
+  gmysql-dbname=$dbname
+  EOF
+
+
+  # instalamos el poweradmin
+  cd /var/www/html/
+  sudo git clone https://github.com/poweradmin/poweradmin.git
+  
+  cat > /var/www/html/poweradmin/.htaccess <<EOF 
+  <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^update$ /dynamic_update.php
+    RewriteRule ^nic/update$ /dynamic_update.php
+  </IfModule>
+  EOF
+ 
+  # configuramos el acceso a la DB para el poweradmin
+  cat > /var/www/html/poweradmin/inc/config.inc.php <<EOF
+  <?php
+  \$db_host = 'EDITAR_ENV-EDITAR_USUARIO-db.node.cloud.um.edu.ar';
+  \$db_name = '$dbname';
+  \$db_user = '$dbuser';
+  \$db_pass = '$dbpass';
+  \$db_type = 'mysql';
+  
+  \$session_key = 'mnf5n!aW^Zlm89wor4k!JR(B6LGDJRkcdWq^5h*)kkS1Lf';
+  
+  \$iface_lang = 'en_EN';
+  
+  \$dns_hostmaster = '';
+  \$dns_ns1 = '';
+  \$dns_ns2 = '';
+  EOF
+
+  chown www-data:www-data -R /var/www/html/*
+  
+  rm -rf /var/www/html/poweradmin/install
+ 
+
+
+_foo: &CONSUL_CONF |
+  {
+    "server": false,
+    "datacenter": "um-01",
+    "data_dir": "/var/consul",
+    "encrypt": "GIMbRTkH/rLwqjOWrMzrcw==",
+    "log_level": "INFO",
+    "domain": "cloud.um.edu.ar",
+    "enable_syslog": true,
+    "start_join": ["192.168.3.130"]
+  }
+
+_foo: &CONSUL_SERVICE |
+  {
+    "service":
+      {
+        "name": "web",
+        "tags": ["apache"],
+        "port": 80
+      }
+  }
+
+_foo: &CONSUL_INIT |
+  #! /bin/sh
+  ### BEGIN INIT INFO
+  # Provides:          consul
+  # Required-Start:    $syslog $time $remote_fs
+  # Required-Stop:     $syslog $time $remote_fs
+  # Default-Start:     2 3 4 5
+  # Default-Stop:      0 1 6
+  # Short-Description: Services/nodes/kv discovery and storage
+  # Description:       Debian init script for the consul agent
+  ### END INIT INFO
+  #
+  # Author:            Diego Navarro <navarrow@gmail.com>
+  #
+
+  PATH=/bin:/usr/bin:/sbin:/usr/sbin
+  DAEMON=/usr/local/sbin/consul
+  PIDFILE=/var/run/consul
+
+  test -x $DAEMON || exit 0
+
+  . /lib/lsb/init-functions
+
+  case "$1" in
+    start)
+          log_daemon_msg "Starting consul agent" "consul"
+          start_daemon -p $PIDFILE $DAEMON agent -config-dir /etc/consul.d -client 0.0.0.0
+          log_end_msg $?
+      ;;
+    stop)
+          log_daemon_msg "Stoping consul agent" "consul"
+          killproc -p $PIDFILE $DAEMON
+          log_end_msg $?
+      ;;
+    force-reload|restart)
+      $0 stop
+      $0 start
+      ;;
+    status)
+      status_of_proc -p $PIDFILE $DAEMON consul && exit 0 || exit $?
+      ;;
+    *)
+      echo "Usage: /etc/init.d/consul {start|stop|restart|force-reload|status}"
+      exit 1
+      ;;
+  esac
+  exit 0
+ 
+ 
+_foo: &CONFIG_APACHE_SH |
+  #!/bin/bash
+  echo "__________________________ APACHE________________________"
+  METADATA=http://169.254.169.254/latest/meta-data/
+  public_hostname=$(curl -s $METADATA/public-hostname)
+  public_hostname=web-EDITAR_USUARIO.node.cloud.um.edu.ar
+  public_ipv4=$(curl -s $METADATA/public-ipv4)
+  local_ipv4=$(curl -s $METADATA/local-ipv4)
+  # jjo: add .conf (required by more recent apache-s)
+  cat > /etc/apache2/sites-available/poweradmin.conf <<EOF
+  <VirtualHost *:80>
+      UseCanonicalName off
+      Options All
+      ServerAdmin webmaster@localhost
+      #ServerName $public_hostname
+      ServerAlias $local_ipv4
+      VirtualDocumentRoot /var/www/html/poweradmin
+      RewriteEngine on
+      ErrorLog \${APACHE_LOG_DIR}/poweradmin-error.log
+      LogLevel warn
+      CustomLog \${APACHE_LOG_DIR}/poweradmin-access.log combined
+  </VirtualHost>
+  EOF
+  a2enmod rewrite vhost_alias
+  a2dissite 000-default
+  rm /var/www/html/index.html
+  a2ensite poweradmin
+  sudo php5enmod mcrypt
+  service apache2 restart
+
+
+
+groups:
+  - umcloud
+users:
+  - name: ubuntu
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - *SSH_KEY
+    ssh-import-id: [jjo, navarrow, "EDITAR_LP"]
+    lock_passwd: true
+
+write_files:
+  - content: *DEPLOY_SH
+    path: /usr/local/src/deploy.sh
+    permissions: '0755'
+  - content: *DEPLOYPDNS_SH
+    path: /usr/local/src/deploypdns.sh
+    permissions: '0755'
+  - content: *CONSUL_CONF
+    path: /etc/consul.d/client.json
+    permissions: '0644'
+  - content: *CONSUL_SERVICE
+    path: /etc/consul.d/web.json
+    permissions: '0644'
+  - content: *CONSUL_INIT
+    path: /etc/init.d/consul
+    permissions: '0755'
+  - content: *CONFIG_APACHE_SH
+    path: /usr/local/src/config_apache.sh
+    permissions: '0755'
+
+runcmd:
+ - [ /usr/local/src/config_apache.sh ]
+ - [ /usr/local/src/deploypdns.sh ]
+ - [ /usr/local/src/deploy.sh ]
+ - [ update-rc.d, consul, defaults ]
+ - [ service, consul, start ]
+ - [ service, apache2, restart ]
+ - [ service, pdns, restart ]
