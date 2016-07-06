@@ -51,7 +51,8 @@ Las consultas pueden realizarse desde los mismos nodos sin inconvenientes.
 
 ## Instalacion
 
-_openstack:
+_openstack:_
+
 git clone https://github.com/d1cor/umcloud_pdns
 
 cd umcloud_pdns/
