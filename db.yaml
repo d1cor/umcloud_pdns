@@ -48,7 +48,7 @@ _foo: &DEPLOY_SH |
 
   #descargamos el dump de la db del powerdna/poweradmin y lo cargamos:
   cd /tmp
-  wget https://raw.githubusercontent.com/d1cor/umcloud/master/pdns_schema.sql
+  wget https://raw.githubusercontent.com/d1cor/umcloud_pdns/master/db.yaml
   mysql -u root $dbname < /tmp/pdns_schema.sql
 
 
