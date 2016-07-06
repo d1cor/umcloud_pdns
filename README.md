@@ -18,11 +18,11 @@ Los nodos web instalan:
   - WUI PowerAdmin para administrar el powerdns
 
 
-*Backends*
+## Backends
 
 La cantidad de backends que van a lanzarse se configura en el Makefile:
  
-	NWEB = 2   #levantara dos backends
+*NWEB = 2   #levantara dos backends*
 
 Dependiendo de la cantidad de backends puede que haya necesidad de modificar el tiempo de espera del restart del haproxy en el front-end.
 
@@ -31,7 +31,7 @@ Al levantar el frontend se genera automáticamente el archivo de configuracion d
 El HAproxy fue configurado para hacer balanceo mediante la dirección ip de origen, puesto que la aplicación web requiere gestionar sesiones de usuario, y el balanceo por carga no mantiene las sesiones con cada uno de los backends.
 
 
-Autenticación a la DB
+## Autenticación a la DB
 
 Tanto el powerdns con su backend-mysql, como el WUI poweradmin, acceden a la DB utilizando las mismas credenciales.
 
@@ -44,7 +44,7 @@ Los datos permanencen en el consul. Si se re-deployea algun equipo, lee los mism
 En el caso de eliminar los datos o el folder en el consul, al deployar nuevamente se generarán.
 
 
-Servicios DNS
+## Servicios DNS
 
 Los nodos web-N levantados son, a su vez, servidores de DNS replicados que leen sus zonas desde la base de datos mediante el backend-mysql de PowerDNS.
 
