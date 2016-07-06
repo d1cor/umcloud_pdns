@@ -1,13 +1,7 @@
 # umcloud_pdns
-##########################################
-#
-# README
-#
-# @Author: d1cor / Diego Córdoba
-#
-# PowerDNS - Mysql Backend - PowerAdmin
-#
-##########################################
+## README
+## @Author: d1cor / Diego Córdoba
+## PowerDNS - Mysql Backend - PowerAdmin
 
 
 El esquema levanta un nodo de DB, por defecto 2 nodos web / backend, y un nodo frontend con haproxy.
@@ -17,6 +11,9 @@ Los nodos web instalan:
   - Servidor web Apache
   - WUI PowerAdmin para administrar el powerdns
 
+Los nodos web brindan servicio de:
+  - http (PowerAdmin) para administrar via web el dns.
+  - dns (powerdns) para resolver zonas
 
 ## Backends
 
@@ -26,9 +23,9 @@ La cantidad de backends que van a lanzarse se configura en el Makefile:
 
 Dependiendo de la cantidad de backends puede que haya necesidad de modificar el tiempo de espera del restart del haproxy en el front-end.
 
-Al levantar el frontend se genera automáticamente el archivo de configuracion del haproxy con tantas líneas "server" como cantidad de backends se hayan configurado en el Makefile.
+Al levantar el frontend se genera automáticamente el archivo de configuracion del haproxy con tantas líneas "*server*" como cantidad de backends se hayan configurado en el Makefile.
 
-El HAproxy fue configurado para hacer balanceo mediante la dirección ip de origen, puesto que la aplicación web requiere gestionar sesiones de usuario, y el balanceo por carga no mantiene las sesiones con cada uno de los backends.
+El **HAproxy** fue configurado para hacer balanceo mediante la dirección ip de origen, puesto que la aplicación web requiere gestionar sesiones de usuario, y el balanceo por carga no mantiene las sesiones con cada uno de los backends.
 
 
 ## Autenticación a la DB
