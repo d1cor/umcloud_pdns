@@ -19,7 +19,7 @@ Los nodos web brindan servicio de:
 
 La cantidad de backends que van a lanzarse se configura en el Makefile:
  
-*NWEB = 2   #levantara dos backends*
+```NWEB = 2   #levantara dos backends*```
 
 Dependiendo de la cantidad de backends puede que haya necesidad de modificar el tiempo de espera del restart del haproxy en el front-end.
 
@@ -63,11 +63,13 @@ El sistema ya tiene cargada la zona *"mizona.com"*, de modo que los nodos web-N 
 
 _openstack:_
 
+```
 git clone https://github.com/d1cor/umcloud_pdns
 
 cd umcloud_pdns/
 
 make deploy ENV=prod
+```
 
 ## TODO
 - Ver la forma de eliminar el "sleep 120" del fe.yaml:31 para que no haya problemas al restart del servicio haproxy.
