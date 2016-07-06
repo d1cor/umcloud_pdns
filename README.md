@@ -48,3 +48,12 @@ Los nodos web-N levantados son, a su vez, servidores de DNS replicados que leen 
 Para poder consultar los nombres de una zona en estos servicios es requerido agregar al default secgroup el puerto udp53 a las instancias del usuario.
 
 Las consultas pueden realizarse desde los mismos nodos sin inconvenientes.
+
+## Instalacion
+
+#openstack:
+git clone https://github.com/d1cor/umcloud_pdns
+cd umcloud_pdns/
+make deploy ENV=prod
+
+
